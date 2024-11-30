@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shape Matcher Game</title>
+  <style>
+    /* General Style */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #game-container {
+      text-align: center;
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      max-width: 100%;
+      transition: transform 1s ease-out;
+    }
+
+    #scoreboard p {
+      font-size: 18px;
+    }
+
+    #shapes-container {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+    }
+
+    .shape {
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    /* Circle */
+    #circle {
+      border-radius: 50%;
+      background-color: #3498db;
+    }
+
+    /* Square */
+    #square {
+      background-color: #2ecc71;
+    }
+
+    /* Triangle */
+    #triangle {
+      width: 0;
+      height: 0;
+      border-left: 40px solid transparent;
+      border-right: 40px solid transparent;
+      border-bottom: 80px solid #f39c12;
+    }
+
+    #game-message p {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    #instructions p {
+      font-size: 14px;
+      color: #7f8c8d;
+      margin-top: 15px;
+    }
+
+    /* Active Shape */
+    .active {
+      transform: scale(1.1);
+    }
+
+    /* Glitch Effect */
+    .glitch {
+      animation: glitch 0.3s infinite alternate;
+    }
+
+    @keyframes glitch {
+      0% {
+        transform: translate(2px, 0) skew(0deg);
+        opacity: 1;
+      }
+      25% {
+        transform: translate(-2px, -1px) skew(1deg);
+        opacity: 0.8;
+      }
+      50% {
+        transform: translate(2px, 1px) skew(1deg);
+        opacity: 0.6;
+      }
+      75% {
+        transform: translate(-2px, 0) skew(0deg);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(1px, -1px) skew(2deg);
+        opacity: 1;
+      }
+    }
+
+    /* Party Popper and Music */
+    .party-popper {
+      position: absolute;
+      top: -50px;
+      width: 20px;
+      height: 20px;
+      background-color: red;
+      border-radius: 50%;
+      animation: pop 2s forwards;
+    }
+
+    @keyframes pop {
+      0% {
+        top: -50px;
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.5);
+        opacity: 0.7;
+      }
+      100% {
+        top: 100vh;
+        opacity: 0;
+      }
+    }
+
+    /* Music */
+    #explosion-sound {
+      display: none;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="scoreboard">
+      <p>Score: <span id="score">0</span></p>
+      <p>Time Left: <span id="time-left">30</span>s</p>
+    </div>
+
+    <div id="shapes-container">
+      <div class="shape" id="circle" data-type="circle"></div>
+      <div class="shape" id="square" data-type="square"></div>
+      <div class="shape" id="triangle" data-type="triangle"></div>
+    </div>
+
+    <div id="game-message">
+      <p>Match the Shape!</p>
+    </div>
+
+    <div id="instructions">
+      <p>Click on the shape that matches the one in the center.</p>
+    </div>
+  </div>
+
+  <audio id="explosion-sound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="auto"></audio>
+
+  <script>
+    let score = 0;
+    let timeLeft = 30;
+    let gameInterval;
+    let shapeTypes = ['circle', 'square', 'triangle'];
+    let currentShape = '';
+    let activeShape = null;
+    let musicPlaying = true;
+
+    // Start game
+    function startGame() {
+      gameInterval = setInterval(updateTime, 1000);
+      generateRandomShape();
+      setTimeout(stopMusic, 300000); // Stop music after 5 minutes
+    }
+
+    // Update the timer and check for game over
+    function updateTime() {
+      timeLeft--;
+      document.getElementById('time-left').textContent = timeLeft;
+
+      if (timeLeft <= 0) {
+        clearInterval(gameInterval);
+        endGame();
+      }
+    }
+
+    // Generate a random shape
+    function generateRandomShape() {
+      const randomShape = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+      currentShape = randomShape;
+      document.getElementById('game-message').textContent = 'Match the ' + randomShape;
+
+      // Remove any active shape styles
+      const shapes = document.querySelectorAll('.shape');
+      shapes.forEach(shape => shape.classList.remove('active'));
+
+      // Activate the shape that matches the current shape
+      activeShape = document.getElementById(randomShape);
+      activeShape.classList.add('active');
+    }
+
+    // Handle player click on shapes
+    function handleShapeClick(event) {
+      const clickedShape = event.target.dataset.type;
+
+      if (clickedShape === currentShape) {
+        score++;
+        document.getElementById('score').textContent = score;
+        generateRandomShape();
+      } else {
+        score--;
+        document.getElementById('score').textContent = score;
+      }
+    }
+
+    // End game with surprise bomb effect
+    function endGame() {
+      document.getElementById('game-message').textContent = "Game Over! Your score is " + score;
+      playExplosionSound();
+      activateBombEffect();
+      showPartyPoppers();
+      applyGlitchEffect();
+    }
+
+    // Play explosion sound
+    function playExplosionSound() {
+      const sound = document.getElementById('explosion-sound');
+      sound.play();
+    }
+
+    // Activate the bomb effect (UI explosion)
+    function activateBombEffect() {
+      document.getElementById('game-container').classList.add('explode');
+      document.body.classList.add('flash');
+    }
+
+    // Show party poppers animation
+    function showPartyPoppers() {
+      for (let i = 0; i < 5; i++) {
+        const popper = document.createElement('div');
+        popper.classList.add('party-popper');
+        popper.style.left = `${Math.random() * 100}vw`;
+        document.body.appendChild(popper);
+      }
+    }
+
+    // Add glitch effect to the UI
+    function applyGlitchEffect() {
+      const container = document.getElementById('game-container');
+      container.classList.add('glitch');
+      const shapes = document.querySelectorAll('.shape');
+      shapes.forEach(shape => shape.classList.add('glitch'));
+    }
+
+    // Stop music after 5 minutes
+    function stopMusic() {
+      const sound = document.getElementById('explosion-sound');
+      sound.pause();  // Stop the sound
+      sound.currentTime = 0; // Reset to the start of the music
+      musicPlaying = false;
+    }
+
+    // Event listeners for shape clicks
+    document.getElementById('circle').addEventListener('click', handleShapeClick);
+    document.getElementById('square').addEventListener('click', handleShapeClick);
+    document.getElementById('triangle').addEventListener('click', handleShapeClick);
+
+    // Start the game when the page loads
+    window.onload = startGame;
+  </script>
+</body>
+</html>
